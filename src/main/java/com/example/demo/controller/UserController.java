@@ -64,4 +64,9 @@ public class UserController {
         UserResponseDto response = userService.getMyInfo(email);
         return new ApiResponse<>(200, "내 정보 조회가 완료되었습니다.", response);
     }
+    @GetMapping("/{userId}")
+    public ApiResponse<UserResponseDto> getUserInfo(@PathVariable Long userId) {
+        UserResponseDto response = userService.getUserInfo(userId);
+        return new ApiResponse<>(200, "성공", response);
+    }
 }

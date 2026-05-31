@@ -13,6 +13,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 @Service
 @RequiredArgsConstructor
@@ -89,5 +91,26 @@ public class UserService {
         // 유저 정보 DTO 생성 시 각 컴포넌트에 맞춰 값을 매핑합니다.
         // (만약 UserResponseDto가 record라면 new UserResponseDto(user.getEmail(), ...) 형태로 작성)
         return new UserResponseDto(user.getEmail(), user.getNickname(), user.getRole().name());
+    }
+
+    /**
+     * 4. 특정 유저 정보 조회 로직 (403 테스트용)
+     */
+    @Transactional(readOnly = true)
+    public UserResponseDto getUserInfo(Long requestedUserId) {
+        // [1] 현재 로그인한 사람의 이메일 꺼내기 (JwtFilter에서 넣어둔 정보)
+        String currentLoginEmail = SecurityContextHolder.getContext().getAuthentication().getName();
+
+        // [2] 요청받은 번호(ID)로 DB에서 유저 찾기
+        User targetUser = userRepository.findById(requestedUserId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다."));
+
+        // [3] 로그인한 사람과 조회하려는 사람이 다르면 403 에러 던지기!
+        if (!currentLoginEmail.equals(targetUser.getEmail())) {
+            throw new AccessDeniedException("본인의 정보만 조회할 수 있습니다.");
+        }
+
+        // [4] 일치하면 정보 반환 (UserResponseDto 생성자에 맞게 수정 필요 시 수정)
+        return new UserResponseDto(targetUser.getEmail(), targetUser.getNickname(), targetUser.getRole().name());
     }
 }
